@@ -19,5 +19,9 @@ if get_option('host').contains('altra')
     if get_option('error-monitor').enabled()
         subdir('altra/host-monitor/error-monitor')
     endif
+
+    if get_option('temp-event-log').enabled()
+        subdir('altra/host-monitor/temp-event-log')
+    endif
 endif
 

@@ -6,6 +6,9 @@ option('boot-progress', type: 'feature',
 option('error-monitor', type: 'feature',
     description: 'Enable host RAS error monitoring support.')
 
+option('temp-event-log', type: 'feature',
+    description: 'Enable Hightemp/Overtemp handling support.')
+
 # Variables
 option(
     'host', type: 'string',
