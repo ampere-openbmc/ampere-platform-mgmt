@@ -3,6 +3,9 @@
 option('boot-progress', type: 'feature',
     description: 'Enable host boot-progress monitoring support.')
 
+option('error-monitor', type: 'feature',
+    description: 'Enable host RAS error monitoring support.')
+
 # Variables
 option(
     'host', type: 'string',
