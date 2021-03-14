@@ -23,5 +23,9 @@ if get_option('host').contains('altra')
     if get_option('temp-event-log').enabled()
         subdir('altra/host-monitor/temp-event-log')
     endif
+
+    if get_option('power-limit').enabled()
+        subdir('altra/host-control/power-limit')
+    endif
 endif
 

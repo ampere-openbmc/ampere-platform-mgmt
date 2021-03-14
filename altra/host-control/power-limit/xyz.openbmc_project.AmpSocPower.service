@@ -1,0 +1,10 @@
+[Unit]
+Description=Ampere Soc Power Limit
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/ampere-soc-power
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

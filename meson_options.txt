@@ -6,6 +6,9 @@ option('boot-progress', type: 'feature',
 option('error-monitor', type: 'feature',
     description: 'Enable host RAS error monitoring support.')
 
+option('power-limit', type: 'feature',
+    description: 'Enable REST API Set/Get SoC Power Limit support.')
+
 option('temp-event-log', type: 'feature',
     description: 'Enable Hightemp/Overtemp handling support.')
 
