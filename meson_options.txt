@@ -1,0 +1,12 @@
+
+# Features
+option('boot-progress', type: 'feature',
+    description: 'Enable host boot-progress monitoring support.')
+
+# Variables
+option(
+    'host', type: 'string',
+    value: 'altra',
+    description: 'Host processor (altra, syrin, ...)',
+)
+
