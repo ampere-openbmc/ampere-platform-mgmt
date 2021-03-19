@@ -27,7 +27,6 @@
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
-#include <gpiod.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
 namespace bootprogress
