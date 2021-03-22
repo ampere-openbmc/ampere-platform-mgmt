@@ -31,11 +31,14 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
+#include <nlohmann/json.hpp>
+#include <platform_config.hpp>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 
 namespace fs = std::filesystem;
+using Json = nlohmann::json;
 
 namespace ampere
 {
@@ -43,13 +46,11 @@ namespace utils
 {
 using namespace phosphor::logging;
 namespace fs = std::filesystem;
-const static constexpr u_int8_t NUM_SOCKET      = 2;
+static u_int8_t NUM_SOCKET                          = 2;
 
 std::string hwmonRootDir[2]     = {
-        "/sys/devices/platform/ahb/ahb:apb/ahb:apb:bus@1e78a000/"\
-        "1e78a0c0.i2c-bus/i2c-2/2-004f/1e78a0c0.i2c-bus:smpro@4f:errmon/",
-        "/sys/devices/platform/ahb/ahb:apb/ahb:apb:bus@1e78a000/"\
-        "1e78a0c0.i2c-bus/i2c-2/2-004e/1e78a0c0.i2c-bus:smpro@4e:errmon/"
+        "/sys/bus/i2c/devices/2-004f/1e78a0c0.i2c-bus:smpro@4f:misc/",
+        "/sys/bus/i2c/devices/2-004e/1e78a0c0.i2c-bus:smpro@4e:misc/"
         };
 
 static std::string getAbsolutePath(u_int8_t socket, std::string fileName)
@@ -60,11 +61,77 @@ static std::string getAbsolutePath(u_int8_t socket, std::string fileName)
     return "";
 }
 
+/** @brief Parsing config JSON file  */
+
+Json parseConfigFile(const std::string configFile)
+{
+    std::ifstream jsonFile(configFile);
+    if (!jsonFile.is_open())
+    {
+        log<level::ERR>("config JSON file not found",
+                        entry("FILENAME = %s", configFile.c_str()));
+        throw std::exception{};
+    }
+
+    auto data = Json::parse(jsonFile, nullptr, false);
+    if (data.is_discarded())
+    {
+        log<level::ERR>("config readings JSON parser failure",
+                        entry("FILENAME = %s", configFile.c_str()));
+        throw std::exception{};
+    }
+
+    return data;
+}
+
+static int parsePlatformConfiguration()
+{
+    const static u_int8_t MSG_BUFFER_LENGTH   = 128;
+    char buff[MSG_BUFFER_LENGTH] = {'\0'};
+    auto data = parseConfigFile(AMPERE_PLATFORM_MGMT_CONFIG_FILE);
+    std::string desc = "";
+    int num = 0;
+
+    num = data.value("number_socket", -1);
+    if (num < 1) {
+        log<level::WARNING>("number_socket configuration is invalid. Using default configuration!");
+    }
+    else {
+        NUM_SOCKET = num;
+    }
+
+    desc = data.value("s0_errmon_path", "");
+    if (desc.empty()) {
+        log<level::WARNING>("s0_errmon_path configuration is invalid. Using default configuration!");
+    }
+    else {
+        hwmonRootDir[0] = desc;
+    }
+    snprintf(buff, MSG_BUFFER_LENGTH, "S0 SMPro errmon path: %s\n", hwmonRootDir[0].c_str());
+    log<level::INFO>(buff);
+
+    desc = data.value("s1_errmon_path", "");
+    if (desc.empty()) {
+        log<level::WARNING>("s1_errmon_path configuration is invalid. Using default configuration!");
+    }
+    else {
+        hwmonRootDir[1] = desc;
+    }
+    snprintf(buff, MSG_BUFFER_LENGTH, "S1 SMPro errmon path: %s\n", hwmonRootDir[1].c_str());
+    log<level::INFO>(buff);
+
+    return 0;
+}
+
 static int initHwmonRootPath()
 {
     u_int8_t socket = 0;
     bool foundRootPath = false;
     char path[256];
+
+    /* parse errmon patch */
+    parsePlatformConfiguration();
+
     for (u_int8_t socket=0; socket < NUM_SOCKET; socket++)
     {
         auto path = fs::path(hwmonRootDir[socket]);

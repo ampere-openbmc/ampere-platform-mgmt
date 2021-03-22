@@ -1,4 +1,6 @@
-inc_dir = include_directories('./include/')
+inc_dirs = [include_directories('./include/'),
+            include_directories('../../../'),
+            ]
 
 deps = [dependency('libsystemd', version : '>=221'),
         dependency('systemd'),
@@ -11,7 +13,7 @@ executable(
         'ampere-host-error-monitor.cpp',
         dependencies: deps,
         install: true,
-        include_directories : inc_dir,
+        include_directories : inc_dirs,
         )
 
 systemd = dependency('systemd')
