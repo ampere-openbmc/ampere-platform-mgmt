@@ -17,6 +17,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/container/flat_map.hpp>
+#include <nlohmann/json.hpp>
+#include <platform_config.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/bus/match.hpp>
@@ -35,13 +37,61 @@ namespace power
 {
 
 namespace fs = std::filesystem;
+using Json = nlohmann::json;
+
 constexpr size_t minScpPowerLimit = 90;
 constexpr size_t maxScpPowerLimit = 500;
 
-const std::vector<std::string> powerCapPath =  {
+static std::vector<std::string> powerCapPath =  {
     "/sys/bus/i2c/devices/2-004f/1e78a0c0.i2c-bus:smpro@4f:misc/soc_power_limit",
     "/sys/bus/i2c/devices/2-004e/1e78a0c0.i2c-bus:smpro@4e:misc/soc_power_limit"
 };
+
+/** @brief Parsing config JSON file  */
+Json parseConfigFile(const std::string configFile)
+{
+    std::ifstream jsonFile(configFile);
+    if (!jsonFile.is_open())
+    {
+        std::cerr << "config JSON file not found" << std::endl;
+        throw std::exception{};
+    }
+
+    auto data = Json::parse(jsonFile, nullptr, false);
+    if (data.is_discarded())
+    {
+        std::cerr << "config readings JSON parser failure" << std::endl;
+        throw std::exception{};
+    }
+
+    return data;
+}
+
+static int parsePlatformConfiguration()
+{
+    auto data = parseConfigFile(AMPERE_PLATFORM_MGMT_CONFIG_FILE);
+    std::string desc = "";
+
+    desc = data.value("s0_misc_path", "");
+    if (desc.empty()) {
+        std::cerr << "s0_misc_path configuration is invalid. Using default configuration!" << std::endl;
+    }
+    else {
+        powerCapPath[0] =  desc + "soc_power_limit";
+    }
+    std::cout << "S0 Power Limit path : " << powerCapPath[0] << std::endl;
+
+    desc = data.value("s1_misc_path", "");
+    if (desc.empty()) {
+        std::cerr << "s1_misc_path configuration is invalid. Using default configuration!" << std::endl;
+    }
+    else {
+        powerCapPath[1] =  desc + "soc_power_limit";
+    }
+    std::cout << "S1 Power Limit path : " << powerCapPath[1] << std::endl;
+
+    return 0;
+}
 
 static std::optional<std::string> getPowerLimitDevPath(unsigned int cpuSocket)
 {
@@ -90,6 +140,9 @@ static void setBmcPowerCap(
 
 int main(int argc, char** argv)
 {
+    /* Parse platform configuration file */
+    ampere::power::parsePlatformConfiguration();
+
     // Get Power Limit dev path of CPU socket 0
     auto pwrLimitPath = ampere::power::getPowerLimitDevPath(0);
     if (pwrLimitPath == std::nullopt)
