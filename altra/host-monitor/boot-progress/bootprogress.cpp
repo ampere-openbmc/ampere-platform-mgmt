@@ -27,12 +27,52 @@
 #include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
+#include <nlohmann/json.hpp>
+#include <platform_config.hpp>
 #include <sdbusplus/asio/object_server.hpp>
 
 namespace bootprogress
 {
 
 namespace fs = std::filesystem;
+using Json = nlohmann::json;
+
+/** @brief Parsing config JSON file  */
+Json parseConfigFile(const std::string configFile)
+{
+    std::ifstream jsonFile(configFile);
+    if (!jsonFile.is_open())
+    {
+        std::cerr << "config JSON file not found" << std::endl;
+        throw std::exception{};
+    }
+
+    auto data = Json::parse(jsonFile, nullptr, false);
+    if (data.is_discarded())
+    {
+        std::cerr << "config readings JSON parser failure" << std::endl;
+        throw std::exception{};
+    }
+
+    return data;
+}
+
+static int parsePlatformConfiguration()
+{
+    auto data = parseConfigFile(AMPERE_PLATFORM_MGMT_CONFIG_FILE);
+    std::string desc = "";
+
+    desc = data.value("s0_misc_path", "");
+    if (desc.empty()) {
+        std::cerr << "s0_misc_path configuration is invalid. Using default configuration for BOOT_PROGRESS_FS!" << std::endl;
+    }
+    else {
+        BOOT_PROGRESS_FS = desc + "boot_progress";
+    }
+    std::cout << "BOOT_PROGRESS_FS : " << BOOT_PROGRESS_FS << std::endl;
+
+    return 0;
+}
 
 /*
  * Method to read the system file
@@ -232,6 +272,7 @@ next:
 
 int main(int argc, char *argv[])
 {
+    bootprogress::parsePlatformConfiguration();
     bootprogress::handleBootProgress();
 
     return 0;

@@ -1,3 +1,6 @@
+inc_dirs = [include_directories('../../../'),
+            ]
+
 executable(
     'ampere-boot-progress', 'bootprogress.cpp',
     dependencies: [
@@ -6,7 +9,8 @@ executable(
         dependency('threads'),
     ],
     install: true,
-    install_dir: get_option('bindir')
+    install_dir: get_option('bindir'),
+    include_directories : inc_dirs,
 )
 
 systemd = dependency('systemd')
