@@ -10,6 +10,26 @@ project(
     version: '1.0',
 )
 
+packagedir = join_paths(
+    get_option('prefix'),
+    get_option('datadir'),
+    meson.project_name(),
+)
+
+configfile = 'config.json'
+confpath = '"' + join_paths(
+    packagedir,
+    configfile,
+) + '"'
+
+install_data(sources : configfile, install_dir : packagedir)
+
+conf_data = configuration_data()
+conf_data.set('AMPERE_PLATFORM_MGMT_CONFIG_FILE', confpath)
+
+configure_file(output : 'platform_config.hpp',
+               configuration : conf_data)
+
 # Option for Altra host processor
 if get_option('host').contains('altra')
     if get_option('boot-progress').enabled()
