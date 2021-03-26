@@ -47,5 +47,9 @@ if get_option('host').contains('altra')
     if get_option('power-limit').enabled()
         subdir('altra/host-control/power-limit')
     endif
+
+    if get_option('scp-failover').enabled()
+        subdir('altra/host-control/scp-failover')
+    endif
 endif
 

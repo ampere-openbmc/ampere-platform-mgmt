@@ -9,6 +9,9 @@ option('error-monitor', type: 'feature',
 option('power-limit', type: 'feature',
     description: 'Enable REST API Set/Get SoC Power Limit support.')
 
+option('scp-failover', type: 'feature',
+    description: 'Enable SCP Failover handling support.')
+
 option('temp-event-log', type: 'feature',
     description: 'Enable Hightemp/Overtemp handling support.')
 

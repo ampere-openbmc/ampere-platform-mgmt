@@ -1,0 +1,10 @@
+[Unit]
+Description=Ampere Computing LLC SCP failover service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/ampere-scp-failover
+SyslogIdentifier=ampere-scp-failover
+
+[Install]
+WantedBy=multi-user.target
