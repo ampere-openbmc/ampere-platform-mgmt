@@ -216,7 +216,7 @@ static int flash_open(char *filename, int flags)
 {
 	int fd = -1;
 
-	fd = open(filename, flags);
+	fd = open(filename, flags, 0644);
 	if (fd < 0) {
 		log_printf(LOG_ERROR, "Failed to open the file: %s\n",
 			filename);
