@@ -16,7 +16,7 @@ Gpio::Gpio(uint32_t line)
     gpioEvent = buildGpioEvent(0, line);
 }
 
-Gpio::Gpio(uint32_t line, bool output)
+Gpio::Gpio(uint32_t line, [[maybe_unused]] bool output)
 {
     gpioHandle = buildGpioHandle(0, line);
 }
@@ -81,7 +81,7 @@ int Gpio::getValue()
     return gpioEvent->getValue();
 }
 
-int Gpio::getValue(bool output)
+int Gpio::getValue([[maybe_unused]] bool output)
 {
     std::vector<uint8_t> value;
 

@@ -137,7 +137,7 @@ static void requestGPIOs(config conf)
     }
 }
 
-static void releaseGPIOs(config conf)
+static void releaseGPIOs([[maybe_unused]] config conf)
 {
     try
     {
@@ -297,7 +297,7 @@ inline static sdbusplus::bus::match::match
 }
 
 
-int main(int argc, char* argv[])
+int main()
 {
     int ret = 0;
     sd_event* event = nullptr;

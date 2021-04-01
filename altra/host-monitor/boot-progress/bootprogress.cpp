@@ -90,8 +90,8 @@ static std::vector<uint32_t> readSystemFile(std::string file)
     {
         // Read the boot stage
         boot_progress_f = fopen(file.c_str(), "r");
-        fscanf(boot_progress_f, "%08x %08x %08x", &stage, &status, &progress);
-        v.insert(v.end(), {stage, status, progress});
+        if (fscanf(boot_progress_f, "%08x %08x %08x", &stage, &status, &progress))
+            v.insert(v.end(), {stage, status, progress});
         fclose(boot_progress_f);
     }
     catch (std::exception &e)
@@ -168,7 +168,7 @@ static void handleBootProgress()
 
                 if (bootStatus == BOOT_STATUS_STARTED)
                 {
-                    for (int index = BOOT_STAGE_SMPRO; index < bootStage; index++)
+                    for (uint32_t index = BOOT_STAGE_SMPRO; index < bootStage; index++)
                     {
                         stream.str("");
                         stream << bootStateStr[index] + " done" << std::endl;
@@ -243,7 +243,7 @@ static void handleBootProgress()
                 }
                 else
                 {
-                    for (int index = BOOT_STAGE_SMPRO; index < bootStage; index++)
+                    for (uint32_t index = BOOT_STAGE_SMPRO; index < bootStage; index++)
                     {
                         stream.str("");
                         stream << bootStateStr[index] + " done" << std::endl;
@@ -270,7 +270,7 @@ next:
 
 }  // namespace bootprogress
 
-int main(int argc, char *argv[])
+int main()
 {
     bootprogress::parsePlatformConfiguration();
     bootprogress::handleBootProgress();

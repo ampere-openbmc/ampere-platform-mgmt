@@ -138,7 +138,7 @@ static void setBmcPowerCap(
 } // namespace power
 } // namespace ampere
 
-int main(int argc, char** argv)
+int main()
 {
     /* Parse platform configuration file */
     ampere::power::parsePlatformConfiguration();
