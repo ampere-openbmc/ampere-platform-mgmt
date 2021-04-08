@@ -16,6 +16,16 @@
 
 #pragma once
 
+#include <platform_config.hpp>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/container/flat_map.hpp>
+#include <boost/container/flat_set.hpp>
+#include <nlohmann/json.hpp>
+#include <phosphor-logging/elog-errors.hpp>
+#include <phosphor-logging/elog.hpp>
+#include <phosphor-logging/log.hpp>
+
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -28,15 +38,6 @@
 #include <variant>
 #include <vector>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/container/flat_set.hpp>
-#include <nlohmann/json.hpp>
-#include <platform_config.hpp>
-#include <phosphor-logging/elog-errors.hpp>
-#include <phosphor-logging/elog.hpp>
-#include <phosphor-logging/log.hpp>
-
 namespace fs = std::filesystem;
 using Json = nlohmann::json;
 
@@ -45,6 +46,7 @@ namespace ampere
 namespace utils
 {
 using namespace phosphor::logging;
+
 namespace fs = std::filesystem;
 static u_int8_t NUM_SOCKET                          = 2;
 
@@ -55,17 +57,19 @@ std::string hwmonRootDir[2]     = {
 
 static std::string getAbsolutePath(u_int8_t socket, std::string fileName)
 {
-    if (hwmonRootDir[socket] != ""){
+    if (hwmonRootDir[socket] != "")
+    {
         return hwmonRootDir[socket] + fileName;
     }
+
     return "";
 }
 
 /** @brief Parsing config JSON file  */
-
 Json parseConfigFile(const std::string configFile)
 {
     std::ifstream jsonFile(configFile);
+
     if (!jsonFile.is_open())
     {
         log<level::ERR>("config JSON file not found",
@@ -93,31 +97,42 @@ static int parsePlatformConfiguration()
     int num = 0;
 
     num = data.value("number_socket", -1);
-    if (num < 1) {
-        log<level::WARNING>("number_socket configuration is invalid. Using default configuration!");
+    if (num < 1)
+    {
+        log<level::WARNING>("number_socket configuration is"\
+                            "invalid. Using default configuration!");
     }
-    else {
+    else
+    {
         NUM_SOCKET = num;
     }
 
     desc = data.value("s0_errmon_path", "");
-    if (desc.empty()) {
-        log<level::WARNING>("s0_errmon_path configuration is invalid. Using default configuration!");
+    if (desc.empty())
+    {
+        log<level::WARNING>("s0_errmon_path configuration is invalid."\
+                            " Using default configuration!");
     }
-    else {
+    else
+    {
         hwmonRootDir[0] = desc;
     }
-    snprintf(buff, MSG_BUFFER_LENGTH, "S0 SMPro errmon path: %s\n", hwmonRootDir[0].c_str());
+    snprintf(buff, MSG_BUFFER_LENGTH, "S0 SMPro errmon path: %s\n",
+             hwmonRootDir[0].c_str());
     log<level::INFO>(buff);
 
     desc = data.value("s1_errmon_path", "");
-    if (desc.empty()) {
-        log<level::WARNING>("s1_errmon_path configuration is invalid. Using default configuration!");
+    if (desc.empty())
+    {
+        log<level::WARNING>("s1_errmon_path configuration is invalid."\
+                            "Using default configuration!");
     }
-    else {
+    else
+    {
         hwmonRootDir[1] = desc;
     }
-    snprintf(buff, MSG_BUFFER_LENGTH, "S1 SMPro errmon path: %s\n", hwmonRootDir[1].c_str());
+    snprintf(buff, MSG_BUFFER_LENGTH, "S1 SMPro errmon path: %s\n",
+             hwmonRootDir[1].c_str());
     log<level::INFO>(buff);
 
     return 0;
@@ -125,9 +140,7 @@ static int parsePlatformConfiguration()
 
 static int initHwmonRootPath()
 {
-    u_int8_t socket = 0;
     bool foundRootPath = false;
-    char path[256];
 
     /* parse errmon patch */
     parsePlatformConfiguration();
@@ -150,6 +163,7 @@ static int initHwmonRootPath()
     {
         return 1;
     }
+
     return 0;
 }
 
@@ -158,8 +172,10 @@ static u_int64_t parseHexStrToUInt64(std::string str)
     char* p;
 
     long n = strtoull(str.c_str(), &p, 16);
-    if ( *p != 0 )
+    if (*p != 0)
+    {
         return 0;
+    }
 
     return n & 0xffffffffffffffff;
 }
@@ -169,8 +185,10 @@ static u_int32_t parseHexStrToUInt32(std::string str)
     char* p;
 
     long n = strtoul(str.c_str(), &p, 16);
-    if ( *p != 0 )
+    if (*p != 0)
+    {
         return 0;
+    }
 
     return n & 0xffffffff;
 }
@@ -180,8 +198,10 @@ static u_int16_t parseHexStrToUInt16(std::string str)
     char* p;
 
     long n = strtoul(str.c_str(), &p, 16);
-    if ( *p != 0 )
+    if (*p != 0)
+    {
         return 0;
+    }
 
     return n & 0xffff;
 }
@@ -191,8 +211,10 @@ static u_int8_t parseHexStrToUInt8(std::string str)
     char* p;
 
     long n = strtoul(str.c_str(), &p, 16);
-    if ( *p != 0 )
+    if (*p != 0)
+    {
         return 0;
+    }
 
     return n & 0xff;
 }

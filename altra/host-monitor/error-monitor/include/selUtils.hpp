@@ -20,15 +20,13 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
+#include <phosphor-logging/elog-errors.hpp>
+#include <phosphor-logging/elog.hpp>
+#include <phosphor-logging/log.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/bus/match.hpp>
 #include <sdbusplus/message.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <phosphor-logging/elog-errors.hpp>
-#include <phosphor-logging/elog.hpp>
-#include <phosphor-logging/log.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -48,47 +46,50 @@ namespace ampere
 {
 namespace sel
 {
-    using namespace phosphor::logging;
-    const static constexpr u_int8_t IPMI_SEL_OEM_RECORD_TYPE    = 0xC0;
-    const static constexpr u_int8_t SEL_OEM_DATA_MAX_SIZE       = 12;
+using namespace phosphor::logging;
 
-    const static constexpr char* selLogService  =
-                        "xyz.openbmc_project.Logging.IPMI";
-    const static constexpr char* selLogPath     =
-                        "/xyz/openbmc_project/Logging/IPMI";
-    const static constexpr char* selLogIntf     =
-                        "xyz.openbmc_project.Logging.IPMI";
-    const static constexpr char* selLogMethod   =
-                        "IpmiSelAddOem";
+const static constexpr u_int8_t IPMI_SEL_OEM_RECORD_TYPE    = 0xC0;
+const static constexpr u_int8_t SEL_OEM_DATA_MAX_SIZE       = 12;
 
-    /* connection to sdbus */
-    static std::shared_ptr<sdbusplus::asio::connection> conn;
+const static constexpr char* selLogService  =
+                    "xyz.openbmc_project.Logging.IPMI";
+const static constexpr char* selLogPath     =
+                    "/xyz/openbmc_project/Logging/IPMI";
+const static constexpr char* selLogIntf     =
+                    "xyz.openbmc_project.Logging.IPMI";
+const static constexpr char* selLogMethod   =
+                    "IpmiSelAddOem";
 
-    static void addSelOem( const char* message,
-        const std::vector<uint8_t> &selData)
-    {
-        conn->async_method_call(
-            [](const boost::system::error_code ec) {
-                if (ec)
-                    log<level::ERR>("Set: Dbus error: ");
-            },
-            selLogService,
-            selLogPath,
-            selLogIntf,
-            selLogMethod,
-            message,
-            selData,
-            IPMI_SEL_OEM_RECORD_TYPE);
-        usleep(300000);
-        return;
-    }
+/* connection to sdbus */
+static std::shared_ptr<sdbusplus::asio::connection> conn;
 
-    static int initSelUtil()
-    {
-        boost::asio::io_service io;
-        conn = std::make_shared<sdbusplus::asio::connection>(io);
-        return 1;
-    }
+static void addSelOem( const char* message,
+                       const std::vector<uint8_t> &selData)
+{
+    conn->async_method_call(
+        [](const boost::system::error_code ec) {
+            if (ec)
+            {
+                log<level::ERR>("Set: Dbus error: ");
+            }
+        },
+        selLogService,
+        selLogPath,
+        selLogIntf,
+        selLogMethod,
+        message,
+        selData,
+        IPMI_SEL_OEM_RECORD_TYPE);
+    usleep(300000);
+    return;
+}
+
+static int initSelUtil()
+{
+    boost::asio::io_service io;
+    conn = std::make_shared<sdbusplus::asio::connection>(io);
+    return 1;
+}
 
 } /* namespace sel */
 } /* namespace ampere */
