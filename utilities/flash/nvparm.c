@@ -533,7 +533,7 @@ int main(int argc, char *argv[])
 	int nMTDDeviceNumber= -1;
 	unsigned long offset = ULONG_MAX, value = ULONG_MAX;
 	char *argv_dev_ptr;
-	char mtd_dev[16];
+	char mtd_dev[MTD_DEV_SIZE];
 	char temp_mtd[4] = {0}, *temp;
 	FILE *proc_fp;
 	char proc_buf[80];
