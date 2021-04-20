@@ -22,6 +22,7 @@
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/message.hpp>
 
+#include <boost/asio.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
@@ -36,6 +37,63 @@ namespace bootprogress
 
 namespace fs = std::filesystem;
 using Json = nlohmann::json;
+
+static boost::asio::io_service io;
+std::shared_ptr<sdbusplus::asio::connection> conn;
+
+const std::string BOOT_PROGRESS_PRIMARY_PROC_INIT =
+        "xyz.openbmc_project.State.Boot.Progress.ProgressStages.PrimaryProcInit";
+
+const std::string BOOT_PROGRESS_PCI_INIT =
+        "xyz.openbmc_project.State.Boot.Progress.ProgressStages.PCIInit";
+
+const std::string BOOT_PROGRESS_SYSTEM_INIT_COMPLETE =
+        "xyz.openbmc_project.State.Boot.Progress.ProgressStages.SystemInitComplete";
+
+const std::string BOOT_PROGRESS_OS_START =
+        "xyz.openbmc_project.State.Boot.Progress.ProgressStages.OSStart";
+
+void setPropertyInString(std::string state)
+{
+    conn->async_method_call([](const boost::system::error_code ec)
+    {
+        if (ec)
+        {
+            std::cerr << " Cannot set the state:" << std::endl;
+            return;
+        }
+    },
+    "xyz.openbmc_project.State.Host",
+    "/xyz/openbmc_project/state/host0",
+    "org.freedesktop.DBus.Properties",
+    "Set",
+    "xyz.openbmc_project.State.Boot.Progress",
+    "BootProgress", std::variant<std::string>(state));
+}
+
+void updateTheProgressDbus(uint32_t progress, bool isOsState)
+{
+    if (!isOsState)
+    {
+        if (progress == PRIMARY_PROCESSOR_INITIALIZATION)
+        {
+            setPropertyInString(BOOT_PROGRESS_PRIMARY_PROC_INIT);
+        }
+        else if (progress == PCI_BUS_INITIALIZATION_ENUMERATION ||
+                 progress == PCI_BUS_INITIALIZATION_ASSIGN_RESOURCES)
+        {
+            setPropertyInString(BOOT_PROGRESS_PCI_INIT);
+        }
+        else if (progress == OS_READY_TO_BOOT)
+        {
+            setPropertyInString(BOOT_PROGRESS_SYSTEM_INIT_COMPLETE);
+        }
+    }
+    else
+    {
+        setPropertyInString(BOOT_PROGRESS_OS_START);
+    }
+}
 
 /** @brief Parsing config JSON file  */
 Json parseConfigFile(const std::string configFile)
@@ -160,6 +218,9 @@ static void handleBootProgress()
         {
             case BOOT_STAGE_UEFI:
             {
+                // Update the progress dbus
+                updateTheProgressDbus(bootProgress, isOSStage);
+
                 // if already hit OS stage, just wait
                 if (isOSStage)
                 {
@@ -272,8 +333,11 @@ next:
 
 int main()
 {
+    bootprogress::conn = std::make_shared<sdbusplus::asio::connection>(bootprogress::io);
+
     bootprogress::parsePlatformConfiguration();
     bootprogress::handleBootProgress();
 
+    bootprogress::io.run();
     return 0;
 }

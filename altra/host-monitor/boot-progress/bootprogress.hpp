@@ -61,6 +61,14 @@ namespace bootprogress
         BOOT_STATUS_MAX_STATE,
     };
 
+    enum PROGRESS
+    {
+        PRIMARY_PROCESSOR_INITIALIZATION = 0x030210,
+        PCI_BUS_INITIALIZATION_ENUMERATION = 0x020100,
+        PCI_BUS_INITIALIZATION_ASSIGN_RESOURCES = 0x020110,
+        OS_READY_TO_BOOT = 0x030510
+    };
+
     static void handleBootProgress();
 
 }
