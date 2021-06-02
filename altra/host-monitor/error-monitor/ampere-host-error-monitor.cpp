@@ -17,6 +17,7 @@
 #include "internalErrors.hpp"
 #include "utils.hpp"
 #include "selUtils.hpp"
+#include <math.h>
 
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
@@ -643,7 +644,7 @@ static int logEventDIMMHot(EventData data, EventFields eFields)
              "OpenBMC.0.1.%s.Warning", data.redFishMsgID);
     for (i = 0; i < SMPRO_DATA_REG_SIZE; i++)
     {
-        bitMask = 2 << i;
+        bitMask = pow(2, i);
         channel = i % 8;
         dimmIdx = i / 8;
         snprintf(comp, MAX_MSG_LEN, "Event %s at DIMM%d of channel %d"\
@@ -653,8 +654,16 @@ static int logEventDIMMHot(EventData data, EventFields eFields)
         if ((eFields.data & bitMask) && (!(currentMask & bitMask)))
         {
             eventData[5] = (DIR_ASSERTED << 7) | data.eventReadType;
-            eventData[7] = (DIMM_COMPONENT << 4) | data.socket;
-            eventData[8] = (dimmIdx << 7) + channel;
+            if (dimmIdx == 0)
+            {
+                eventData[7] = bitMask;
+                eventData[8] = 0;
+            }
+            else
+            {
+                eventData[7] = 0;
+                eventData[8] = bitMask;
+            }
             curEventMask[data.idx] = curEventMask[data.idx] | bitMask;
             ampere::sel::addSelOem("OEM RAS error:", eventData);
 
@@ -667,8 +676,16 @@ static int logEventDIMMHot(EventData data, EventFields eFields)
         else if ((!(eFields.data & bitMask)) && (currentMask & bitMask))
         {
             eventData[5] = (DIR_DEASSERTED << 7) | data.eventReadType;
-            eventData[7] = (DIMM_COMPONENT << 4) | data.socket;
-            eventData[8] = (dimmIdx << 7) + channel;
+            if (dimmIdx == 0)
+            {
+                eventData[7] = bitMask;
+                eventData[8] = 0;
+            }
+            else
+            {
+                eventData[7] = 0;
+                eventData[8] = bitMask;
+            }
             curEventMask[data.idx] = curEventMask[data.idx] &
                                      (0xffff - bitMask);
             ampere::sel::addSelOem("OEM RAS error:", eventData);
