@@ -1341,7 +1341,7 @@ static int getErrorsAndEvents()
             }
         }
 
-        sleep(1);
+	usleep(1.2*1000000);
     }
 
     return 1;
