@@ -9,9 +9,6 @@ option('error-monitor', type: 'feature',
 option('power-limit', type: 'feature',
     description: 'Enable REST API Set/Get SoC Power Limit support.')
 
-option('temp-event-log', type: 'feature',
-    description: 'Enable Hightemp/Overtemp handling support.')
-
 # Variables
 option(
     'host', type: 'string',
