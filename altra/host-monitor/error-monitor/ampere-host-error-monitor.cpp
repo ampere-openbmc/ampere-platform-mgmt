@@ -108,6 +108,8 @@ const static constexpr u_int8_t AMPERE_IANA_BYTE_1      = 0x3A;
 const static constexpr u_int8_t AMPERE_IANA_BYTE_2      = 0xCD;
 const static constexpr u_int8_t AMPERE_IANA_BYTE_3      = 0x00;
 
+const static constexpr char* AMPERE_REFISH_REGISTRY = "AmpereCritical";
+
 struct ErrorFields {
     u_int8_t errType;
     u_int8_t subType;
@@ -268,6 +270,7 @@ std::map<u_int16_t, ErrorInfo> mapOfOccur = {
     {0x3f02, {63, 2, 1, "BERT ATF Fatal", "Socket%s"}},
     {0x3f03, {63, 3, 1, "BERT SMpro Fatal", "Socket%s"}},
     {0x3f04, {63, 4, 1, "BERT PMpro Fatal", "Socket%s"}},
+    {0xffff, {255, 255, 1, "Overflow", "Socket%s"}},
 };
 
 const static constexpr u_int16_t MCU_ERR_1_TYPE    = 0x0101;
@@ -488,6 +491,18 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
         snprintf(redFishComp, MAX_MSG_LEN, "%s", eInfo.errName);
     }
 
+    if (temp == 0xffff)
+    {
+        char comp[MAX_MSG_LEN] = {'\0'};
+        snprintf(redFishMsgID, MAX_MSG_LEN,
+                "OpenBMC.0.1.%s.Critical", AMPERE_REFISH_REGISTRY);
+        snprintf(comp, MAX_MSG_LEN, "%s: %s", data.errName, redFishComp);
+        sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishMsgID,
+                        "REDFISH_MESSAGE_ARGS=%s,%s", comp, redFishMsg,
+                        NULL);
+        return 1;
+    }
+
     if (apiIdx == errors_core_ue || apiIdx == errors_core_ce)
     {
         char sTemp[MAX_MSG_LEN] = {'\0'};
@@ -575,7 +590,7 @@ static int parseAndLogErrors(ErrorData data, std::string errLine)
     /* Error type is Overflowed */
     if (errFields.errType == 0xff && errFields.subType == 0xff)
     {
-        errFields.instance = data.socket << 6;
+        errFields.instance = data.socket << 14;
     }
 
     /* Add Ipmi SEL log*/
