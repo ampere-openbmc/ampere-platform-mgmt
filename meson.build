@@ -32,10 +32,6 @@ configure_file(output : 'platform_config.hpp',
 
 # Option for Altra host processor
 if get_option('host').contains('altra')
-    if get_option('boot-progress').enabled()
-        subdir('altra/host-monitor/boot-progress')
-    endif
-
     if get_option('error-monitor').enabled()
         subdir('altra/host-monitor/error-monitor')
     endif
