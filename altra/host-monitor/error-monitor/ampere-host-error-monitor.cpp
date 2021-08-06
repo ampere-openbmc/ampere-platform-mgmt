@@ -37,8 +37,8 @@ namespace ampere
 namespace ras
 {
 const static constexpr u_int16_t MAX_MSG_LEN    = 128;
-const static constexpr u_int8_t TYPE_TEMP       = 0x01;
-const static constexpr u_int8_t TYPE_STATE      = 0x02;
+const static constexpr u_int8_t TYPE_TEMP       = 0x03;
+const static constexpr u_int8_t TYPE_STATE      = 0x05;
 const static constexpr u_int8_t TYPE_OTHER      = 0x12;
 const static constexpr u_int8_t TYPE_MEM        = 0x0C;
 const static constexpr u_int8_t TYPE_CORE       = 0x07;
@@ -58,9 +58,11 @@ const static constexpr u_int8_t PMPRO_IERR     = 148;
 const static constexpr u_int8_t S0_DIMM_HOT         = 160;
 const static constexpr u_int8_t S0_VRD_HOT          = 180;
 const static constexpr u_int8_t S0_VRD_WARN_FAULT   = 181;
+const static constexpr u_int8_t S0_DIMM_2X_REFRESSH = 162;
 const static constexpr u_int8_t S1_DIMM_HOT         = 161;
 const static constexpr u_int8_t S1_VRD_HOT          = 183;
 const static constexpr u_int8_t S1_VRD_WARN_FAULT   = 184;
+const static constexpr u_int8_t S1_DIMM_2X_REFRESSH = 163;
 /* Direction of RAS Internal errors */
 const static constexpr u_int8_t  DIR_ENTER      = 0;
 const static constexpr u_int8_t  DIR_EXIT       = 1;
@@ -107,6 +109,8 @@ const static constexpr u_int16_t SMPRO_DATA_REG_SIZE    = 16;
 const static constexpr u_int8_t AMPERE_IANA_BYTE_1      = 0x3A;
 const static constexpr u_int8_t AMPERE_IANA_BYTE_2      = 0xCD;
 const static constexpr u_int8_t AMPERE_IANA_BYTE_3      = 0x00;
+
+const static constexpr u_int16_t NUMBER_DIMM_CHANNEL    = 8;
 
 const static constexpr char* AMPERE_REFISH_REGISTRY = "AmpereCritical";
 
@@ -298,7 +302,8 @@ struct EventData {
 enum EventTypes{
     event_vrd_warn_fault,
     event_vrd_hot,
-    event_dimm_hot
+    event_dimm_hot,
+    event_dimm_2x_refresh
 };
 
 EventData eventTypeTable[] = {
@@ -319,12 +324,18 @@ EventData eventTypeTable[] = {
         "VR_HOT", "AmpereWarning"},
     {5, 1, event_dimm_hot, "event_dimm_hot", TYPE_TEMP,
         TEMP_READ_TYPE, S1_DIMM_HOT,
-        "DIMM_HOT", "AmpereWarning"}
+        "DIMM_HOT", "AmpereWarning"},
+    {6, 0, event_dimm_2x_refresh, "event_dimm_2x_refresh", TYPE_MEM,
+        STATUS_READ_TYPE, S0_DIMM_2X_REFRESSH,
+        "DIMM_2X_REFRESH_RATE", "AmpereWarning"},
+    {7, 1, event_dimm_2x_refresh, "event_dimm_2x_refresh", TYPE_MEM,
+        STATUS_READ_TYPE, S1_DIMM_2X_REFRESSH,
+        "DIMM_2X_REFRESH_RATE", "AmpereWarning"}
 };
 
 const static constexpr u_int8_t NUMBER_OF_EVENTS    =
         sizeof(eventTypeTable) / sizeof(EventData);
-u_int16_t curEventMask[NUMBER_OF_EVENTS] = {0, 0, 0, 0 ,0 ,0};
+u_int16_t curEventMask[NUMBER_OF_EVENTS] = {};
 
 static int logInternalErrorToIpmiSEL(ErrorData data,
                                         InternalFields eFields)
@@ -706,6 +717,62 @@ static int logEventDIMMHot(EventData data, EventFields eFields)
             ampere::sel::addSelOem("OEM RAS error:", eventData);
 
             snprintf(redFishMsg, MAX_MSG_LEN, "Deasserted.");
+            sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishMsgID,
+                            "REDFISH_MESSAGE_ARGS=%s,%s", comp, redFishMsg,
+                            NULL);
+        }
+    }
+
+    return 1;
+}
+
+static int logEventDIMM2xRefresh(EventData data, EventFields eFields)
+{
+    std::vector<uint8_t> eventData(
+            ampere::sel::SEL_OEM_DATA_MAX_SIZE, 0xFF);
+    u_int16_t bitMask = 0;
+    u_int8_t channel = 0;
+    char redFishMsgID[MAX_MSG_LEN] = {'\0'};
+    char redFishMsg[MAX_MSG_LEN] = {'\0'};
+    char comp[MAX_MSG_LEN] = {'\0'};
+    u_int16_t currentMask = curEventMask[data.idx];
+
+    eventData[0] = AMPERE_IANA_BYTE_1;
+    eventData[1] = AMPERE_IANA_BYTE_2;
+    eventData[2] = AMPERE_IANA_BYTE_3;
+    eventData[3] = data.eventType;
+    eventData[4] = data.eventNum;
+    eventData[6] = 0x1 | EVENT_DATA_1 | EVENT_DATA_3;
+
+    snprintf(redFishMsgID, MAX_MSG_LEN,
+             "OpenBMC.0.1.%s.Warning", data.redFishMsgID);
+    for (channel = 0; channel < NUMBER_DIMM_CHANNEL; channel++)
+    {
+        bitMask = pow(2, channel);
+        eventData[7] = data.socket;
+        eventData[8] = channel;
+        snprintf(comp, MAX_MSG_LEN, "Event %s at DIMM channel %d"\
+                 " of Socket %d", data.eventName, channel,
+                 data.socket);
+
+        if ((eFields.data & bitMask) && (!(currentMask & bitMask)))
+        {
+            eventData[5] = (DIR_ASSERTED << 7) | data.eventReadType;
+            curEventMask[data.idx] = curEventMask[data.idx] | bitMask;
+
+            snprintf(redFishMsg, MAX_MSG_LEN, "Asserted.");
+            ampere::sel::addSelOem("OEM RAS error:", eventData);
+            sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishMsgID,
+                            "REDFISH_MESSAGE_ARGS=%s,%s", comp, redFishMsg,
+                            NULL);
+        }
+        else if ((!(eFields.data & bitMask)) && (currentMask & bitMask))
+        {
+            eventData[5] = (DIR_DEASSERTED << 7) | data.eventReadType;
+            curEventMask[data.idx] = curEventMask[data.idx] &
+                                     (0xffff - bitMask);
+            snprintf(redFishMsg, MAX_MSG_LEN, "Deasserted.");
+            ampere::sel::addSelOem("OEM RAS error:", eventData);
             sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishMsgID,
                             "REDFISH_MESSAGE_ARGS=%s,%s", comp, redFishMsg,
                             NULL);
@@ -1290,6 +1357,9 @@ static int parseAndLogEvents(EventData data, std::string eventLine)
             break;
         case event_dimm_hot:
             logEventDIMMHot(data, eventFields);
+            break;
+        case event_dimm_2x_refresh:
+            logEventDIMM2xRefresh(data, eventFields);
             break;
         default:
             break;
