@@ -171,7 +171,7 @@ static u_int64_t parseHexStrToUInt64(std::string str)
 {
     char* p;
 
-    long n = strtoull(str.c_str(), &p, 16);
+    u_int64_t n = strtoull(str.c_str(), &p, 16);
     if (*p != 0)
     {
         return 0;

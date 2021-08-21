@@ -120,6 +120,10 @@ struct ErrorFields {
     u_int16_t instance;
     u_int32_t status;
     u_int64_t address;
+    u_int64_t misc0;
+    u_int64_t misc1;
+    u_int64_t misc2;
+    u_int64_t misc3;
 };
 
 struct InternalFields {
@@ -525,8 +529,13 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
     else if (apiIdx == errors_mem_ue || apiIdx == errors_mem_ce)
     {
         char dimCh[MAX_MSG_LEN] = {'\0'};
-        snprintf(dimCh, MAX_MSG_LEN, "%x", (inst_13_0 & 0x7ff));
         u_int8_t rank = (eFields.address >> 20) & 0xF;
+        u_int8_t bank = (int)((eFields.misc0 >> 32) & 0xf);
+        u_int8_t row  = (int)((eFields.misc0 >> 10) & 0x3ffff);
+        u_int8_t col  = (int)(((eFields.misc0 >> 0) & 0x3ff) << 3);
+        char redFishECCMsgID[MAX_MSG_LEN] = {'\0'};
+
+        snprintf(dimCh, MAX_MSG_LEN, "%x", (inst_13_0 & 0x7ff));
         /* Only detect DIMM Idx for MCU_ERROR_1 or MCU_ERROR_2 Type */
         if (temp == MCU_ERR_1_TYPE || temp == MCU_ERR_2_TYPE)
         {
@@ -541,6 +550,19 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
                             "REDFISH_MESSAGE_ARGS=%d,%s,%d,%d", socket,
                             dimCh, 0xff, 0xff, NULL);
         }
+        if (apiIdx == errors_mem_ue)
+        {
+            snprintf(redFishECCMsgID, MAX_MSG_LEN,
+                    "OpenBMC.0.1.MemoryExtendedECCUEData.Critical");
+        }
+        else
+        {
+            snprintf(redFishECCMsgID, MAX_MSG_LEN,
+                    "OpenBMC.0.1.MemoryExtendedECCCEData.Warning");
+        }
+        sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishECCMsgID,
+                        "REDFISH_MESSAGE_ARGS=%d,%d,%d", bank,
+                        row, col);
     }
     else if (apiIdx == errors_pcie_ue || apiIdx == errors_pcie_ce)
     {
@@ -597,6 +619,14 @@ static int parseAndLogErrors(ErrorData data, std::string errLine)
     errFields.instance = ampere::utils::parseHexStrToUInt16(result[2]);
     errFields.status = ampere::utils::parseHexStrToUInt32(result[3]);
     errFields.address = ampere::utils::parseHexStrToUInt64(result[4]);
+    /* Error type with 48 data bytes */
+    if (result.size() >= 9)
+    {
+        errFields.misc0 = ampere::utils::parseHexStrToUInt64(result[5]);
+        errFields.misc1 = ampere::utils::parseHexStrToUInt64(result[6]);
+        errFields.misc2 = ampere::utils::parseHexStrToUInt64(result[7]);
+        errFields.misc3 = ampere::utils::parseHexStrToUInt64(result[8]);
+    }
 
     /* Error type is Overflowed */
     if (errFields.errType == 0xff && errFields.subType == 0xff)
