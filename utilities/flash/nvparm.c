@@ -48,7 +48,7 @@ typedef unsigned int uint32_t;
 #define LOG_ERROR               2
 
 #define PROC_MTD_INFO           "/proc/mtd"
-#define HOST_SPI_FLASH_MTD_NAME "pnor"
+#define HOST_SPI_FLASH_MTD_NAME "\"pnor\""
 #define MTD_DEV_SIZE            20
 
 /* Option string of this application */
@@ -694,6 +694,7 @@ int main(int argc, char *argv[])
 
 			memcpy((char *)&temp_mtd, (char *)&temp[3], (strlen(temp) - 3));
 			nMTDDeviceNumber = atoi(temp_mtd);
+			break;
 		}
 	}
 	fclose(proc_fp);
