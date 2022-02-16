@@ -16,27 +16,14 @@
 
 #pragma once
 
-#include <boost/algorithm/string.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/container/flat_set.hpp>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <sdbusplus/asio/connection.hpp>
 #include <sdbusplus/bus.hpp>
-#include <sdbusplus/bus/match.hpp>
-#include <sdbusplus/message.hpp>
 
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iomanip>
 #include <iostream>
-#include <memory>
-#include <regex>
 #include <string>
-#include <utility>
 #include <variant>
 #include <vector>
 
@@ -84,10 +71,10 @@ static void addSelOem( const char* message,
     return;
 }
 
-static int initSelUtil()
+static int initSelUtil(std::shared_ptr<sdbusplus::asio::connection>& newBus)
 {
-    boost::asio::io_service io;
-    conn = std::make_shared<sdbusplus::asio::connection>(io);
+    conn = newBus;
+
     return 1;
 }
 

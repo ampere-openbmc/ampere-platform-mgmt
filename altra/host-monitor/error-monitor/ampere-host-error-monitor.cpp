@@ -22,6 +22,10 @@
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
+#include <boost/asio/io_context.hpp>
+#include <sdbusplus/timer.hpp>
+#include <sdbusplus/asio/sd_event.hpp>
+#include <sdbusplus/asio/connection.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -340,6 +344,11 @@ EventData eventTypeTable[] = {
 const static constexpr u_int8_t NUMBER_OF_EVENTS    =
         sizeof(eventTypeTable) / sizeof(EventData);
 u_int16_t curEventMask[NUMBER_OF_EVENTS] = {};
+
+std::unique_ptr<phosphor::Timer> rasTimer
+    __attribute__((init_priority(101)));
+
+std::unique_ptr<sdbusplus::bus::match::match> hostStateMatch;
 
 static int logInternalErrorToIpmiSEL(ErrorData data,
                                         InternalFields eFields)
@@ -1425,41 +1434,80 @@ static int logEvents(EventData data, const char *fileName)
     return 1;
 }
 
-static int getErrorsAndEvents()
+static void getErrorsAndEvents()
 {
     std::string filePath;
     u_int8_t index = 0;
-    bool c0ntinue = true;
 
-    index = 0;
-    while(c0ntinue)
+    for(index = 0; index < NUMBER_OF_ERRORS; index ++)
     {
-        for(index = 0; index < NUMBER_OF_ERRORS; index ++)
+        ErrorData data1 = errorTypeTable[index];
+        filePath = ampere::utils::getAbsolutePath(
+                    data1.socket, data1.label);
+        if (filePath != "")
         {
-            ErrorData data1 = errorTypeTable[index];
-            filePath = ampere::utils::getAbsolutePath(
-                       data1.socket, data1.label);
-            if (filePath != "")
-            {
-                logErrors(data1, filePath.c_str());
-            }
+            logErrors(data1, filePath.c_str());
         }
-
-        for(index = 0; index < NUMBER_OF_EVENTS; index ++)
-        {
-            EventData data2 = eventTypeTable[index];
-            filePath = ampere::utils::getAbsolutePath(
-                       data2.socket, data2.label);
-            if (filePath != "")
-            {
-                logEvents(data2, filePath.c_str());
-            }
-        }
-
-	usleep(1.2*1000000);
     }
 
-    return 1;
+    for(index = 0; index < NUMBER_OF_EVENTS; index ++)
+    {
+        EventData data2 = eventTypeTable[index];
+        filePath = ampere::utils::getAbsolutePath(
+                    data2.socket, data2.label);
+        if (filePath != "")
+        {
+            logEvents(data2, filePath.c_str());
+        }
+    }
+}
+
+static void handleHostStateMatch(std::shared_ptr<sdbusplus::asio::connection>& conn)
+{
+    rasTimer = std::make_unique<phosphor::Timer>(getErrorsAndEvents);
+
+    auto startEventMatcherCallback = [](sdbusplus::message::message& msg) {
+        boost::container::flat_map<std::string, std::variant<std::string>>
+            propertiesChanged;
+        std::string interfaceName;
+
+        msg.read(interfaceName, propertiesChanged);
+        if (propertiesChanged.empty())
+        {
+            return;
+        }
+
+        std::string event = propertiesChanged.begin()->first;
+        auto variant =
+            std::get_if<std::string>(&propertiesChanged.begin()->second);
+
+        if (event.empty() || variant == nullptr)
+        {
+            return;
+        }
+
+        if (event == "CurrentHostState")
+        {
+            if (*variant ==
+                     "xyz.openbmc_project.State.Host.HostState.Running")
+            {
+                log<level::INFO>("Host is turned on ");
+		getErrorsAndEvents();
+                rasTimer->start(std::chrono::microseconds(1200000), true);
+            }
+            else
+            {
+                log<level::INFO>("Host is turned off ");
+                rasTimer->stop();
+            }
+        }
+    };
+
+    hostStateMatch = std::make_unique<sdbusplus::bus::match::match>(
+        static_cast<sdbusplus::bus::bus&>(*conn),
+        "type='signal',interface='org.freedesktop.DBus.Properties',member='"
+        "PropertiesChanged',arg0namespace='xyz.openbmc_project.State.Host'",
+        std::move(startEventMatcherCallback));
 }
 
 } /* namespace ras */
@@ -1470,9 +1518,18 @@ int main()
     int ret;
     log<level::INFO>("Starting xyz.openbmc_project.AmpRas.service");
 
-    /* Init Dbus connect for SEL log */
-    ampere::sel::initSelUtil();
+    boost::asio::io_context io;
 
+    /*
+     * Add timer to keep sd_event is warm, if this timer is removed,
+     * ras timer does not is called.
+     */
+    phosphor::Timer t2([]() { ; });
+    t2.start(std::chrono::microseconds(500000), true);
+
+    auto conn = std::make_shared<sdbusplus::asio::connection>(io);
+
+    ampere::sel::initSelUtil(conn);
     ret = ampere::utils::initHwmonRootPath();
     if (!ret)
     {
@@ -1480,7 +1537,11 @@ int main()
         return 1;
     }
 
-    ampere::ras::getErrorsAndEvents();
+    sdbusplus::asio::sd_event_wrapper sdEvents(io);
+
+    ampere::ras::handleHostStateMatch(conn);
+
+    io.run();
 
     return 0;
 }
