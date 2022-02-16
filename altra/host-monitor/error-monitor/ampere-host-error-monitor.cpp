@@ -232,7 +232,7 @@ std::map<u_int16_t, ErrorInfo> mapOfOccur = {
     {0x0201, {2, 1, 2, "Mesh HNI", "Socket%s instance:%s"}},
     {0x0202, {2, 2, 2, "Mesh HNF", "Socket%s instance:%s"}},
     {0x0204, {2, 4, 2, "Mesh CXG", "Socket%s instance:%s"}},
-    {0x0300, {3, 0, 2, "2P CCIX ERR", "Socket%s Link%s"}},
+    {0x0300, {3, 0, 2, "2P AER ERR", "Socket%s Link%s"}},
     {0x0400, {4, 0, 2, "2P ALI ERR", "Socket%s Link%s"}},
     {0x0500, {5, 0, 1, "GIC ERR 0", "Socket%s"}},
     {0x0501, {5, 1, 1, "GIC ERR 1", "Socket%s"}},
