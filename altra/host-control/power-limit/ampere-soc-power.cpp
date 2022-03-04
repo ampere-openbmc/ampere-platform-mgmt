@@ -43,8 +43,8 @@ constexpr size_t minScpPowerLimit = 90;
 constexpr size_t maxScpPowerLimit = 500;
 
 static std::vector<std::string> powerCapPath =  {
-    "/sys/bus/i2c/devices/2-004f/1e78a0c0.i2c-bus:smpro@4f:misc/soc_power_limit",
-    "/sys/bus/i2c/devices/2-004e/1e78a0c0.i2c-bus:smpro@4e:misc/soc_power_limit"
+    "/sys/bus/platform/devices/smpro-misc.2.auto/soc_power_limit",
+    "/sys/bus/platform/devices/smpro-misc.5.auto/soc_power_limit"
 };
 
 /** @brief Parsing config JSON file  */
