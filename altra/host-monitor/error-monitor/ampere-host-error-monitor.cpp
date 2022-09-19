@@ -118,6 +118,10 @@ const static constexpr u_int16_t NUMBER_DIMM_CHANNEL    = 8;
 
 const static constexpr char* AMPERE_REFISH_REGISTRY = "AmpereCritical";
 
+const static constexpr char* createFlagCmd = "touch /tmp/fault_RAS_UE";
+const static constexpr char* rmFlagCmd = "rm /tmp/fault_RAS_UE";
+const static constexpr char* RASUEFlagPath = "/tmp/fault_RAS_UE";
+
 struct ErrorFields {
     u_int8_t errType;
     u_int8_t subType;
@@ -586,6 +590,12 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
         sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishMsgID,
                         "REDFISH_MESSAGE_ARGS=%s,%s", comp, redFishMsg,
                         NULL);
+    }
+    if (apiIdx == errors_core_ue || apiIdx == errors_mem_ue ||
+            apiIdx == errors_pcie_ue || apiIdx == errors_other_ue)
+    {
+        if(std::system(createFlagCmd) != 0)
+            log<level::INFO>("Cannot create flag RAS UE for fault monitor");
     }
     return 1;
 }
@@ -1499,6 +1509,12 @@ static void handleHostStateMatch(std::shared_ptr<sdbusplus::asio::connection>& c
             {
                 log<level::INFO>("Host is turned off ");
                 rasTimer->stop();
+                auto p = fs::path(RASUEFlagPath);
+                if(fs::exists(p))
+                {
+                    if(std::system(rmFlagCmd) != 0)
+                        log<level::INFO>("remove flag RAS UE failed");
+                }
             }
         }
     };
