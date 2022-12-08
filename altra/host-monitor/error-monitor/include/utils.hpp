@@ -150,7 +150,7 @@ static int initHwmonRootPath()
         auto path = fs::path(hwmonRootDir[socket]);
         if (fs::exists(path) && fs::is_directory(path))
         {
-            path = fs::path(hwmonRootDir[socket] + "/errors_core_ce");
+            path = fs::path(hwmonRootDir[socket] + "/error_core_ce");
             if (fs::exists(path))
             {
                 foundRootPath = true;
@@ -217,6 +217,29 @@ static u_int8_t parseHexStrToUInt8(std::string str)
     }
 
     return n & 0xff;
+}
+
+static void swap2Byte(std::string& str)
+{
+    int i, j;
+    int len = str.size();
+
+    for (i = 0, j = 1; j < len;)
+    {
+        std::swap(str[i], str[j]);
+        i += 2;
+        j += 2;
+    }
+}
+
+static void reverseStr(std::string& str)
+{
+    swap2Byte(str);
+    int len = str.size();
+    for (int i = 0; i < (len/2); i++)
+    {
+        std::swap(str[i], str[(len-i-1)]);
+    }
 }
 
 } /* namespace utils */

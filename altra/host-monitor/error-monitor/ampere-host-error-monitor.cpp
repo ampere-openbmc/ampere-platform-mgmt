@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Ampere Computing LLC
+ * Copyright (c) 2021-2022 Ampere Computing LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -122,6 +122,14 @@ const static constexpr char* createFlagCmd = "touch /tmp/fault_RAS_UE";
 const static constexpr char* rmFlagCmd = "rm /tmp/fault_RAS_UE";
 const static constexpr char* RASUEFlagPath = "/tmp/fault_RAS_UE";
 
+const static constexpr int ERR_RECORD_BYTE_BLOCK = 8;
+const static constexpr int BYTE_LEN = sizeof(u_int8_t) * 2;
+const static constexpr u_int8_t GROUP0_POS = 0;
+const static constexpr u_int8_t GROUP1_POS = 8;
+const static constexpr u_int8_t GROUP2_POS = 16;
+const static constexpr u_int8_t GROUP3_POS = 24;
+const static constexpr u_int8_t LEN_OF_GROUP = BYTE_LEN * 4;
+
 struct ErrorFields {
     u_int8_t errType;
     u_int8_t subType;
@@ -155,58 +163,68 @@ struct ErrorData {
 };
 /* Error type index of RAS Errors */
 enum ErrorTypes{
-    errors_core_ue,
-    errors_mem_ue,
-    errors_pcie_ue,
-    errors_other_ue,
-    errors_core_ce,
-    errors_mem_ce,
-    errors_pcie_ce,
-    errors_other_ce,
-    errors_smpro,
-    errors_pmpro
+    error_core_ue,
+    error_mem_ue,
+    error_pcie_ue,
+    error_other_ue,
+    error_core_ce,
+    error_mem_ce,
+    error_pcie_ce,
+    error_other_ce,
+    error_smpro,
+    error_pmpro,
+    warn_smpro,
+    warn_pmpro
 };
 
 ErrorData errorTypeTable[] = {
-    {0, errors_core_ue, "errors_core_ue", TYPE_CORE, UE_CORE_IERR,
+    {0, error_core_ue, "error_core_ue", TYPE_CORE, UE_CORE_IERR,
         "UE_CPU_IError", "CPUError"},
-    {0, errors_mem_ue, "errors_mem_ue", TYPE_MEM, UE_MEM_IERR,
+    {0, error_mem_ue, "error_mem_ue", TYPE_MEM, UE_MEM_IERR,
         "UE_Memory_IErr", "MemoryECCUncorrectable"},
-    {0, errors_pcie_ue, "errors_pcie_ue", TYPE_PCIE, UE_PCIE_IERR,
+    {0, error_pcie_ue, "error_pcie_ue", TYPE_PCIE, UE_PCIE_IERR,
         "UE_PCIE_IErr", "PCIeFatalUncorrectableInternal"},
-    {0, errors_other_ue, "errors_other_ue", TYPE_OTHER, UE_OTHER_IERR,
+    {0, error_other_ue, "error_other_ue", TYPE_OTHER, UE_OTHER_IERR,
         "UE_SoC_IErr", "AmpereCritical"},
-    {1, errors_core_ue, "errors_core_ue", TYPE_CORE, UE_CORE_IERR,
+    {1, error_core_ue, "error_core_ue", TYPE_CORE, UE_CORE_IERR,
         "UE_CPU_IError", "CPUError"},
-    {1, errors_mem_ue, "errors_mem_ue", TYPE_MEM, UE_MEM_IERR,
+    {1, error_mem_ue, "error_mem_ue", TYPE_MEM, UE_MEM_IERR,
         "UE_Memory_IErr", "MemoryECCUncorrectable"},
-    {1, errors_pcie_ue, "errors_pcie_ue", TYPE_PCIE, UE_PCIE_IERR,
+    {1, error_pcie_ue, "error_pcie_ue", TYPE_PCIE, UE_PCIE_IERR,
         "UE_PCIE_IErr", "PCIeFatalUncorrectableInternal"},
-    {1, errors_other_ue, "errors_other_ue", TYPE_OTHER, UE_OTHER_IERR,
+    {1, error_other_ue, "error_other_ue", TYPE_OTHER, UE_OTHER_IERR,
         "UE_SoC_IErr", "AmpereCritical"},
-    {0, errors_core_ce, "errors_core_ce", TYPE_CORE, CE_CORE_IERR,
+    {0, error_core_ce, "error_core_ce", TYPE_CORE, CE_CORE_IERR,
         "CE_CPU_IError", "CPUError"},
-    {0, errors_mem_ce, "errors_mem_ce", TYPE_MEM, CE_MEM_IERR,
+    {0, error_mem_ce, "error_mem_ce", TYPE_MEM, CE_MEM_IERR,
         "CE_Memory_IErr", "MemoryECCCorrectable"},
-    {0, errors_pcie_ce, "errors_pcie_ce", TYPE_PCIE, CE_PCIE_IERR,
+    {0, error_pcie_ce, "error_pcie_ce", TYPE_PCIE, CE_PCIE_IERR,
         "CE_PCIE_IErr", "PCIeFatalECRCError"},
-    {0, errors_other_ce, "errors_other_ce", TYPE_OTHER, CE_OTHER_IERR,
+    {0, error_other_ce, "error_other_ce", TYPE_OTHER, CE_OTHER_IERR,
         "CE_SoC_IErr", "AmpereCritical"},
-    {1, errors_core_ce, "errors_core_ce", TYPE_CORE, CE_CORE_IERR,
+    {1, error_core_ce, "error_core_ce", TYPE_CORE, CE_CORE_IERR,
         "CE_CPU_IError", "CPUError"},
-    {1, errors_mem_ce, "errors_mem_ce", TYPE_MEM, CE_MEM_IERR,
+    {1, error_mem_ce, "error_mem_ce", TYPE_MEM, CE_MEM_IERR,
         "CE_Memory_IErr", "MemoryECCCorrectable"},
-    {1, errors_pcie_ce, "errors_pcie_ce", TYPE_PCIE, CE_PCIE_IERR,
+    {1, error_pcie_ce, "error_pcie_ce", TYPE_PCIE, CE_PCIE_IERR,
         "CE_PCIE_IErr", "PCIeFatalECRCError"},
-    {1, errors_other_ce, "errors_other_ce", TYPE_OTHER, CE_OTHER_IERR,
+    {1, error_other_ce, "error_other_ce", TYPE_OTHER, CE_OTHER_IERR,
         "CE_SoC_IErr", "AmpereCritical"},
-    {0, errors_smpro, "errors_smpro", TYPE_SMPM, SMPRO_IERR,
+    {0, error_smpro, "error_smpro", TYPE_SMPM, SMPRO_IERR,
         "SMPRO_IErr", "AmpereCritical"},
-    {0, errors_pmpro, "errors_pmpro", TYPE_SMPM, PMPRO_IERR,
+    {0, error_pmpro, "error_pmpro", TYPE_SMPM, PMPRO_IERR,
         "PMPRO_IErr", "AmpereCritical"},
-    {1, errors_smpro, "errors_smpro", TYPE_SMPM, SMPRO_IERR,
+    {1, error_smpro, "error_smpro", TYPE_SMPM, SMPRO_IERR,
         "SMPRO_IErr", "AmpereCritical"},
-    {1, errors_pmpro, "errors_pmpro", TYPE_SMPM, PMPRO_IERR,
+    {1, error_pmpro, "error_pmpro", TYPE_SMPM, PMPRO_IERR,
+        "PMPRO_IErr", "AmpereCritical"},
+    {0, warn_smpro, "warn_smpro", TYPE_SMPM, SMPRO_IERR,
+        "SMPRO_IErr", "AmpereCritical"},
+    {0, warn_pmpro, "warn_pmpro", TYPE_SMPM, PMPRO_IERR,
+        "PMPRO_IErr", "AmpereCritical"},
+    {1, warn_smpro, "warn_smpro", TYPE_SMPM, SMPRO_IERR,
+        "SMPRO_IErr", "AmpereCritical"},
+    {1, warn_pmpro, "warn_pmpro", TYPE_SMPM, PMPRO_IERR,
         "PMPRO_IErr", "AmpereCritical"},
 };
 
@@ -436,8 +454,10 @@ static int logInternalErrorToRedfish(ErrorData data,
                      sErrorCode, eFields.data);
     }
 
-    if (data.intErrorType == errors_smpro ||
-            data.intErrorType == errors_pmpro)
+    if (data.intErrorType == error_smpro ||
+            data.intErrorType == error_pmpro ||
+            data.intErrorType == warn_smpro ||
+            data.intErrorType == warn_pmpro)
     {
         sd_journal_send("REDFISH_MESSAGE_ID=%s", redfishMsgID,
                         "REDFISH_MESSAGE_ARGS=%s,%s", redfishComp,
@@ -445,6 +465,90 @@ static int logInternalErrorToRedfish(ErrorData data,
     }
 
     return 1;
+}
+/*
+ * Output format:
+ * <4-byte hex value of error info><4-byte hex value of error extensive data>
+ * Where:
+ *   + error info : The error information
+ *   + error data : Extensive data (32 bits)
+ * Reference to section 5.10 RAS Internal Error Register Definition in
+ * Altra SOC BMC Interface specification
+ * Example
+ * Error:
+ * 337100005b0000000000000000000000
+ * Error with data:
+ * 337200005b0000003412000078560000
+ * Warning:
+ * 337100005b000000
+ */
+static int prepareInternalErrData(const std::string& errLine,
+        std::vector<std::string>& result)
+{
+    unsigned int numberOfSubStr = ERR_RECORD_BYTE_BLOCK;
+    unsigned int numberOfByteBlock = errLine.size() / numberOfSubStr;
+    const std::string errData = "0000000000000000";
+    const std::string errTypeWarn = "1";
+    const std::string errTypeErr = "2";
+    const std::string errTypeErrWData = "4";
+    std::string tmpStr;
+
+    if (numberOfByteBlock == 2)
+    {
+        //internal warning
+        result.push_back(errTypeWarn);
+    }
+    else
+    {
+        if (!errData.compare(errLine.substr(GROUP2_POS, LEN_OF_GROUP * 2)))
+        {
+            //internal error without data
+            result.push_back(errTypeErr);
+        }
+        else
+        {
+            //internal error with data
+            result.push_back(errTypeErrWData);
+        }
+    }
+    //software image
+    result.push_back(errLine.substr(2, 1));
+    //directory
+    if (ampere::utils::parseHexStrToUInt8(errLine.substr(2, 2)) & 0x08)
+    {
+        result.push_back("1");
+    }
+    else
+    {
+        result.push_back("0");
+    }
+    //location
+    result.push_back(errLine.substr(GROUP0_POS, 2));
+    //error code
+    tmpStr = errLine.substr(GROUP1_POS, LEN_OF_GROUP);
+    ampere::utils::reverseStr(tmpStr);
+    result.push_back(tmpStr);
+    //error data
+    if (!result[0].compare(errTypeErrWData))
+    {
+        //data high
+        tmpStr = errLine.substr(GROUP2_POS, LEN_OF_GROUP);
+        ampere::utils::reverseStr(tmpStr);
+        tmpStr.erase(0, std::min(tmpStr.find_first_not_of('0'), tmpStr.size()-1));
+        //data low
+        std::string t;
+        t = errLine.substr(GROUP3_POS, LEN_OF_GROUP);
+        ampere::utils::reverseStr(t);
+        t.erase(0, std::min(t.find_first_not_of('0'), t.size()-1));
+        t = t + tmpStr;
+        result.push_back(t);
+    }
+    else
+    {
+        //warning and error without data, just push 4 bytes zero
+        result.push_back("00000000");
+    }
+    return 0;
 }
 
 static int parseAndLogInternalErrors(ErrorData data, std::string errLine)
@@ -454,13 +558,14 @@ static int parseAndLogInternalErrors(ErrorData data, std::string errLine)
 
     errLine.erase(std::remove(errLine.begin(), errLine.end(), '\n'),
                   errLine.end());
-    boost::split(result, errLine, boost::is_any_of(" "));
+    prepareInternalErrData(errLine, result);
     if (result.size() < 6)
     {
         return 0;
     }
 
-    if (data.intErrorType == errors_smpro)
+    if (data.intErrorType == error_smpro ||
+            data.intErrorType == warn_smpro)
     {
         errFields.errType = SMPRO_IERR_TYPE;
     }
@@ -531,7 +636,7 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
         return 1;
     }
 
-    if (apiIdx == errors_core_ue || apiIdx == errors_core_ce)
+    if (apiIdx == error_core_ue || apiIdx == error_core_ce)
     {
         char sTemp[MAX_MSG_LEN] = {'\0'};
         snprintf(sTemp, MAX_MSG_LEN, "%s: %s %s", data.errName,
@@ -539,7 +644,7 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
         sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishMsgID,
                         "REDFISH_MESSAGE_ARGS=%s", sTemp, NULL);
     }
-    else if (apiIdx == errors_mem_ue || apiIdx == errors_mem_ce)
+    else if (apiIdx == error_mem_ue || apiIdx == error_mem_ce)
     {
         char dimCh[MAX_MSG_LEN] = {'\0'};
         u_int8_t rank = (eFields.address >> 20) & 0xF;
@@ -563,7 +668,7 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
                             "REDFISH_MESSAGE_ARGS=%d,%s,%d,%d", socket,
                             dimCh, 0xff, 0xff, NULL);
         }
-        if (apiIdx == errors_mem_ue)
+        if (apiIdx == error_mem_ue)
         {
             snprintf(redFishECCMsgID, MAX_MSG_LEN,
                     "OpenBMC.0.1.MemoryExtendedECCUEData.Critical");
@@ -575,15 +680,15 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
         }
         sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishECCMsgID,
                         "REDFISH_MESSAGE_ARGS=%d,%d,%d", bank,
-                        row, col);
+                        row, col, NULL);
     }
-    else if (apiIdx == errors_pcie_ue || apiIdx == errors_pcie_ce)
+    else if (apiIdx == error_pcie_ue || apiIdx == error_pcie_ce)
     {
         sd_journal_send("REDFISH_MESSAGE_ID=%s", redFishMsgID,
                         "REDFISH_MESSAGE_ARGS=%d,%d,%d", socket,
                         inst_13_0, 0, NULL);
     }
-    else if (apiIdx == errors_other_ue || apiIdx == errors_other_ce)
+    else if (apiIdx == error_other_ue || apiIdx == error_other_ce)
     {
         char comp[MAX_MSG_LEN] = {'\0'};
         snprintf(comp, MAX_MSG_LEN, "%s: %s", data.errName, redFishComp);
@@ -591,8 +696,8 @@ static int logErrorToRedfish(ErrorData data, ErrorFields eFields)
                         "REDFISH_MESSAGE_ARGS=%s,%s", comp, redFishMsg,
                         NULL);
     }
-    if (apiIdx == errors_core_ue || apiIdx == errors_mem_ue ||
-            apiIdx == errors_pcie_ue || apiIdx == errors_other_ue)
+    if (apiIdx == error_core_ue || apiIdx == error_mem_ue ||
+            apiIdx == error_pcie_ue || apiIdx == error_other_ue)
     {
         if(std::system(createFlagCmd) != 0)
             log<level::INFO>("Cannot create flag RAS UE for fault monitor");
@@ -620,6 +725,47 @@ static int logErrorToIpmiSEL(ErrorData data, ErrorFields eFields)
     return 1;
 }
 
+static int prepareErrData(const std::string& errLine,
+        std::vector<std::string>& result)
+{
+    unsigned int pos = 0;
+    unsigned int numberOfSubStr = BYTE_LEN * ERR_RECORD_BYTE_BLOCK;
+    unsigned int numberOfByteBlock = errLine.size() / numberOfSubStr;
+    unsigned int numOfBlockMoreThan1Byte = 7;
+
+    if (numberOfByteBlock != 6)
+    {
+        //something wrong with data
+        return -1;
+    }
+
+    //Error Type, 1 byte
+    result.push_back(errLine.substr(pos, BYTE_LEN));
+    pos += BYTE_LEN;
+    //Error subType, 1 byte
+    result.push_back(errLine.substr(pos, BYTE_LEN));
+    pos += BYTE_LEN;
+    //Error Type Instance, 2 bytes
+    result.push_back(errLine.substr(pos, BYTE_LEN * 2));
+    pos += BYTE_LEN * 2;
+    //Error status, 4 bytes
+    result.push_back(errLine.substr(pos, BYTE_LEN * 4));
+    pos += BYTE_LEN * 4;
+    //the rest of payload block
+    for (auto i = 0u; i < numberOfByteBlock - 1; i++)
+    {
+        result.push_back(errLine.substr(pos, numberOfSubStr));
+        pos += BYTE_LEN * 8;
+    }
+
+    for (auto i = 2u; i < numOfBlockMoreThan1Byte; i++)
+    {
+        ampere::utils::reverseStr(result[i]);
+    }
+
+    return 0;
+}
+
 static int parseAndLogErrors(ErrorData data, std::string errLine)
 {
     ErrorFields errFields;
@@ -627,7 +773,7 @@ static int parseAndLogErrors(ErrorData data, std::string errLine)
 
     errLine.erase(std::remove(errLine.begin(), errLine.end(), '\n'),
                   errLine.end());
-    boost::split(result, errLine, boost::is_any_of(" "));
+    prepareErrData(errLine, result);
     if (result.size() < 5)
     {
         return 0;
@@ -676,8 +822,10 @@ static int logErrors(ErrorData data, const char *fileName) {
     size_t len = 0;
     while ((getline(&line, &len, fp)) != -1)
     {
-        if (data.intErrorType == errors_smpro ||
-            data.intErrorType == errors_pmpro)
+        if (data.intErrorType == error_smpro ||
+            data.intErrorType == error_pmpro ||
+            data.intErrorType == warn_smpro ||
+            data.intErrorType == warn_pmpro)
         {
             parseAndLogInternalErrors(data, line);
         }
@@ -1386,15 +1534,13 @@ static int logEventVrdWarnFault(EventData data, EventFields eFields)
 static int parseAndLogEvents(EventData data, std::string eventLine)
 {
     EventFields eventFields;
-    std::vector<std::string> result;
 
     eventLine.erase(std::remove(eventLine.begin(), eventLine.end(), '\n'),
-        eventLine.end());
-    boost::split(result, eventLine, boost::is_any_of(" "));
-    if (result.size() < 2)
+                  eventLine.end());
+    if (eventLine.size() != 4)
         return 0;
-    eventFields.type = ampere::utils::parseHexStrToUInt8(result[0]);
-    eventFields.data = ampere::utils::parseHexStrToUInt16(result[1]);
+    eventFields.type = data.intEventType;
+    eventFields.data = ampere::utils::parseHexStrToUInt16(eventLine);
 
     switch (eventFields.type)
     {
