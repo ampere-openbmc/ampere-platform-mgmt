@@ -19,5 +19,5 @@ configure_file(
   input: 'xyz.openbmc_project.AmpSocPower.service',
   output: 'xyz.openbmc_project.AmpSocPower.service',
   copy: true,
-  install_dir: systemd.get_pkgconfig_variable('systemdsystemunitdir')
+  install_dir: systemd.get_variable('systemdsystemunitdir')
   )

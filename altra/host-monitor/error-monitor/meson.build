@@ -17,9 +17,9 @@ executable(
         )
 
 systemd = dependency('systemd')
-systemd_system_unit_dir = systemd.get_pkgconfig_variable(
+systemd_system_unit_dir = systemd.get_variable(
     'systemdsystemunitdir',
-    define_variable: ['prefix', get_option('prefix')])
+    pkgconfig_define: ['prefix', get_option('prefix')])
 
 configure_file(
     copy: true,
