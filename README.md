@@ -1,1 +1,1 @@
-# ampere-host-mgmt
+# [DEPRECATED] ampere-host-mgmt
